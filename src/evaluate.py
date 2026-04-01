@@ -88,3 +88,19 @@ def compare_models(champ_metrics: dict, chal_metrics: dict, min_improvement: flo
     }
     
     return promote, report
+
+def calculate_residual_stability(y_true, y_proba):
+    """Calculates the standard deviation of prediction errors across deciles."""
+    df = pd.DataFrame({'y': y_true, 'p': y_proba})
+    df['error'] = df['y'] - df['p']
+    
+    try:
+        # Group predictions into 10 decile bins
+        df['decile'] = pd.qcut(df['p'], q=10, duplicates='drop')
+        decile_errors = df.groupby('decile')['error'].mean()
+        return float(decile_errors.std())
+    except ValueError:
+        # Failsafe if the model predicts the exact same probability for everyone
+        return 0.0 
+
+metrics['residual_stability'] = calculate_residual_stability(y, preds_proba)
