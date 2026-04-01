@@ -1,62 +1,142 @@
-import pandas as pd
-import numpy as np
 import logging
+from typing import Dict, List, Any
+
+import numpy as np
+import pandas as pd
+from scipy.stats import wasserstein_distance
 
 logger = logging.getLogger(__name__)
 
-def extract_quantile_bins(df: pd.DataFrame, features: list, bins: int = 10) -> dict:
-    """Calculates fixed baseline bins for PSI computation."""
-    bin_dict = {}
-    for feature in features:
-        # Generate unique bin edges using quantiles
-        _, edges = pd.qcut(df[feature], q=bins, retbins=True, duplicates='drop')
-        # Ensure outer edges catch all future outliers
-        edges[0] = -np.inf
-        edges[-1] = np.inf
-        bin_dict[feature] = edges
-    return bin_dict
+def extract_quantile_bins(
+    baseline_data: pd.DataFrame, 
+    feature_cols: List[str], 
+    num_bins: int = 10
+) -> Dict[str, np.ndarray]:
+    """
+    Calculates fixed baseline bins for PSI computation based on empirical quantiles.
+    Safeguards the outer bounds to capture future outliers.
+    """
+    if baseline_data.empty:
+        raise ValueError("Cannot extract bins from an empty baseline DataFrame.")
+        
+    bin_dictionary = {}
+    
+    for feature in feature_cols:
+        if feature not in baseline_data.columns:
+            raise KeyError(f"Feature '{feature}' not found in baseline data.")
+            
+        try:
+            _, bin_edges = pd.qcut(baseline_data[feature], q=num_bins, retbins=True, duplicates='drop')
+            
+            # Secure the outer edges to catch all future out-of-bounds data
+            bin_edges[0] = -np.inf
+            bin_edges[-1] = np.inf
+            
+            bin_dictionary[feature] = bin_edges
+            
+        except Exception as e:
+            logger.error(f"Failed to generate quantile bins for {feature}: {e}")
+            raise
+            
+    return bin_dictionary
 
-def compute_psi_report(baseline_bins: dict, current_data: pd.DataFrame, min_customers: int = 50, min_bin_count: int = 5) -> dict:
-    """Computes operational PSI with reliability constraints."""
-    report = {"is_reliable": True, "features": {}}
+
+def compute_psi_report(
+    baseline_bins: Dict[str, np.ndarray], 
+    eval_data: pd.DataFrame, 
+    min_customers: int = 50, 
+    min_bin_count: int = 5,
+    epsilon: float = 1e-6
+) -> Dict[str, Any]:
+    """
+    Computes Population Stability Index (PSI) with strict reliability constraints and 
+    mathematical epsilon fallbacks.
+    """
+    if eval_data.empty:
+        raise ValueError("Cannot compute PSI on an empty evaluation DataFrame.")
+        
+    report = {
+        "is_reliable": True, 
+        "features": {}
+    }
     
-    if len(current_data) < min_customers:
+    n_eval_samples = len(eval_data)
+    
+    if n_eval_samples < min_customers:
         report["is_reliable"] = False
-        logger.warning(f"Slice size ({len(current_data)}) below minimum threshold.")
-    
-    epsilon = 1e-6 # To avoid division by zero
-    
+        logger.warning(f"Slice size ({n_eval_samples}) below minimum threshold ({min_customers}). PSI flagged as unreliable.")
+        
     for feature, edges in baseline_bins.items():
-        # Using numpy histogram for fast binning
-        expected_counts, _ = np.histogram(current_data[feature], bins=edges) # Approximation for baseline distribution
-        observed_counts, _ = np.histogram(current_data[feature], bins=edges)
+        if feature not in eval_data.columns:
+            raise KeyError(f"Feature '{feature}' missing from evaluation data.")
+            
+        # The expected distribution was originally split uniformly by quantiles.
+        # If duplicates were dropped during creation, n_bins_actual might be < num_bins.
+        n_bins_actual = len(edges) - 1
+        expected_proportions = np.ones(n_bins_actual) / n_bins_actual
         
-        # In a real system, expected_counts comes directly from the baseline slice data.
-        # For this snippet, we assume equal distribution (deciles) if baseline_bins were perfect deciles:
-        expected_prop = np.ones(len(edges)-1) / (len(edges)-1) 
+        observed_counts, _ = np.histogram(eval_data[feature], bins=edges)
         
-        observed_prop = observed_counts / len(current_data)
-        
-        # Reliability check
         if np.any(observed_counts < min_bin_count):
             report["is_reliable"] = False
+            logger.debug(f"Feature '{feature}' has bin counts below minimum threshold ({min_bin_count}).")
             
-        # Add epsilon
-        expected_prop = np.where(expected_prop == 0, epsilon, expected_prop)
-        observed_prop = np.where(observed_prop == 0, epsilon, observed_prop)
+        observed_proportions = observed_counts / n_eval_samples
         
-        # PSI Formula
-        psi_val = np.sum((observed_prop - expected_prop) * np.log(observed_prop / expected_prop))
-        report["features"][feature] = float(psi_val)
+        expected_proportions = np.where(expected_proportions == 0, epsilon, expected_proportions)
+        observed_proportions = np.where(observed_proportions == 0, epsilon, observed_proportions)
+        
+        # PSI = sum((Actual % - Expected %) * ln(Actual % / Expected %))
+        psi_array = (observed_proportions - expected_proportions) * np.log(observed_proportions / expected_proportions)
+        
+        report["features"][feature] = float(np.sum(psi_array))
         
     return report
 
-def check_drift_trigger(psi_report: dict, auc_drop: float, psi_threshold: float = 0.25, auc_tolerance: float = 0.03) -> bool:
-    """Requires corroboration between PSI and performance before triggering."""
-    if not psi_report["is_reliable"]:
+
+def check_drift_trigger(
+    psi_report: Dict[str, Any], 
+    auc_drop: float, 
+    psi_threshold: float = 0.25, 
+    auc_tolerance: float = 0.03
+) -> bool:
+    """
+    Evaluates the dual-gate drift trigger. Requires BOTH severe distributional shift (PSI)
+    AND corroborated performance degradation (AUC drop).
+    """
+    if not psi_report.get("is_reliable", False):
+        logger.info("Drift trigger suppressed: PSI report flagged as statistically unreliable.")
         return False
         
-    max_psi = max(psi_report["features"].values())
-    if max_psi >= psi_threshold and auc_drop >= auc_tolerance:
+    feature_psis = psi_report.get("features", {})
+    if not feature_psis:
+        return False
+        
+    max_psi_observed = max(feature_psis.values())
+    
+    # Corroborated logic: AND gate
+    if max_psi_observed >= psi_threshold and auc_drop >= auc_tolerance:
         return True
+        
     return False
+
+
+def compute_wasserstein_distance(
+    baseline_data: pd.DataFrame, 
+    eval_data: pd.DataFrame, 
+    feature_cols: List[str]
+) -> Dict[str, float]:
+    """
+    Computes Earth Mover's Distance (Wasserstein) as a secondary drift detector.
+    Used specifically for robustness checks as it is immune to bin-size sensitivity.
+    """
+    report = {"features": {}}
+    
+    for feature in feature_cols:
+        if feature not in baseline_data.columns or feature not in eval_data.columns:
+            raise KeyError(f"Feature '{feature}' missing from data for Wasserstein computation.")
+            
+        w_dist = wasserstein_distance(baseline_data[feature], eval_data[feature])
+        report["features"][feature] = float(w_dist)
+        
+    return report
