@@ -67,7 +67,7 @@ def log_run_to_mlflow(
                 
             mlflow.log_dict(psi_report, "artifacts/psi_report.json")
             
-        mlflow.sklearn.log_model(model_pipeline, "model_artifact")
+        mlflow.sklearn.log_model(model_pipeline, "model_artifact", serialization_format="skops")
         
         mlflow.log_text(run_notes, "artifacts/run_notes.txt")
         
