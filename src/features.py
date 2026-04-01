@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def compute_rfm_features(df: pd.DataFrame) -> pd.DataFrame:
     """Aggregates transactional data into Recency, Frequency, Monetary."""
