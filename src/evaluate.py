@@ -32,7 +32,7 @@ def compute_residual_stability(true_labels: np.ndarray, predicted_probs: np.ndar
     try:
         # Group predictions into 10 decile bins (Quantile Binning)
         eval_df['prob_decile'] = pd.qcut(eval_df['predicted'], q=10, duplicates='drop')
-        decile_mean_errors = eval_df.groupby('prob_decile')['residual_error'].mean()
+        decile_mean_errors = eval_df.groupby('prob_decile', observed=False)['residual_error'].mean()
         return float(decile_mean_errors.std())
     except ValueError:
         # Failsafe: Triggered if the model predicts the exact same probability for all samples
