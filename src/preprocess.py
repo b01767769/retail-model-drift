@@ -28,3 +28,21 @@ def clean_and_slice_data(df: pd.DataFrame, num_slices: int = 6) -> dict[int, pd.
         logger.info(f"Slice {i} created: {len(slice_df)} records.")
         
     return slices_dict
+
+def inject_drift(df):
+    df = df.copy()
+
+    # 1. Mean shift
+    df["income"] = df["income"] * 1.25
+
+    # 2. Variance inflation
+    df["age"] = df["age"] + np.random.normal(0, 10, len(df))
+
+    # 3. Categorical skew
+    df["region"] = df["region"].replace({
+        "north": "south",
+        "east": "south"
+    })
+
+    return df
+
