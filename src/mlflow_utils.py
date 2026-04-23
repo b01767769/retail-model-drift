@@ -76,7 +76,7 @@ def log_run_standard(
     params: Dict[str, Any],
     metrics: Dict[str, float],
     tags: Dict[str, Any],
-    artifact_paths: Dict[str, str],
+    artifact_paths: Dict[str, Any],  # Updated from Dict[str, str] to Any to accept model/scaler objects
     experiment_name: str = "retail_model_drift"
 ) -> str:
     """
@@ -107,9 +107,21 @@ def log_run_standard(
         mlflow.log_metrics(metrics)
         mlflow.set_tags(tags)
         
-        mlflow.sklearn.log_model(artifact_paths['model'], "model_artifact", serialization_format="cloudpickle")
-        mlflow.sklearn.log_model(artifact_paths['scaler'], "scaler_artifact", serialization_format="cloudpickle")
+        # FIX 1: Log the model securely using 'skops'
+        mlflow.sklearn.log_model(
+            sk_model=artifact_paths['model'], 
+            artifact_path="model_artifact", 
+            serialization_format="skops"
+        )
         
+        # FIX 2: Dump the Scaler locally with joblib, then upload it as a standard file artifact
+        # This prevents the "Model was missing function: predict" PyFunc warning
+        scaler_path = Path("artifacts/scaler.pkl")
+        scaler_path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(artifact_paths['scaler'], scaler_path)
+        mlflow.log_artifact(str(scaler_path), artifact_path="preprocessing")
+        
+        # Log remaining local file artifacts (plots, CSVs, text files)
         for key, path_str in artifact_paths.items():
             if key not in ['model', 'scaler']:  # Already handled above
                 if Path(path_str).exists():
