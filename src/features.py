@@ -1,17 +1,23 @@
 import pandas as pd
 import numpy as np
 
-def compute_rfm_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregates transactional data into Recency, Frequency, Monetary."""
+def compute_rfm_features(df: pd.DataFrame, reference_date=None) -> pd.DataFrame:
+    """Compute Recency, Frequency and Monetary features from transactional data."""
+    
     df['spend'] = df['quantity'] * df['price']
-    slice_end_date = df['invoicedate'].max()
     
-    rfm = df.groupby('customerid').agg(
-        recency=('invoicedate', lambda x: (slice_end_date - x.max()).days),
-        frequency=('invoice', 'nunique'),
-        monetary=('spend', 'sum')
-    ).reset_index()
+    if reference_date is None:
+        reference_date = df['invoicedate'].max()
     
+    rfm = (
+        df.groupby('customerid')
+          .agg(
+              recency=('invoicedate', lambda x: (reference_date - x.max()).days),
+              frequency=('invoice', 'nunique'),
+              monetary=('spend', 'sum')
+          )
+          .reset_index()
+    )
     return rfm
 
 def assign_targets(current_rfm: pd.DataFrame, next_rfm: pd.DataFrame, percentile: float = 75.0) -> pd.DataFrame:
