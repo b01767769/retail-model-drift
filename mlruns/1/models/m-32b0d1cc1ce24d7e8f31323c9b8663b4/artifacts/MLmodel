@@ -1,0 +1,15 @@
+artifact_path: /workspaces/retail-model-drift/mlruns/1/models/m-32b0d1cc1ce24d7e8f31323c9b8663b4/artifacts
+flavors:
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.11.1
+model_id: m-32b0d1cc1ce24d7e8f31323c9b8663b4
+model_size_bytes: 647
+model_uuid: m-32b0d1cc1ce24d7e8f31323c9b8663b4
+prompts: null
+run_id: d2acb22517944bd9ab2a1a5b680ca39a
+utc_time_created: '2026-04-23 04:54:50.514855'

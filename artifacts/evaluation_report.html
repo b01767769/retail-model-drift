@@ -1,0 +1,43 @@
+
+    <html>
+    <head>
+        <title>Slice 5 Evaluation Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+            table { border-collapse: collapse; width: 50%; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .container { display: flex; gap: 20px; }
+            img { max-width: 400px; border: 1px solid #ccc; }
+        </style>
+    </head>
+    <body>
+        <h2>Model Evaluation Report: Slice 5</h2>
+        <p><strong>MLflow Run ID:</strong> <a href="#">1520ebcbb90948d79e5accab116f5b62</a></p>
+        <p><strong>PSI Context:</strong> Retrain Triggered: True. Max PSI: 0.542 on 'frequency_scaled' (Threshold: 0.25). AUC Drop: 0.161 (Tolerance: 0.03).</p>
+        
+        <h3>Performance Metrics</h3>
+        <table>
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>AUC (Mean)</td><td>0.7884</td></tr>
+            <tr><td>AUC 95% CI</td><td>[0.7592, 0.8136]</td></tr>
+            <tr><td>Brier Score (Calibration)</td><td>0.1287</td></tr>
+            <tr><td>Accuracy</td><td>0.8276</td></tr>
+            <tr><td>Precision / Recall</td><td>0.6895 / 0.3647</td></tr>
+            <tr><td>Residual Stability</td><td>0.0314</td></tr>
+        </table>
+
+        <h3>Diagnostic Visuals</h3>
+        <div class="container">
+            <div>
+                <h4>Feature Importance</h4>
+                <img src="feature_importance.png" alt="Feature Importance Plot missing">
+            </div>
+            <div>
+                <h4>Confusion Matrix</h4>
+                <img src="confusion_matrix.png" alt="Confusion Matrix missing">
+            </div>
+        </div>
+    </body>
+    </html>
+    

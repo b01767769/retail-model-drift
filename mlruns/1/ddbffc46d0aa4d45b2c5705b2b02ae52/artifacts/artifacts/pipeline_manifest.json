@@ -1,0 +1,8 @@
+{
+  "data_source_path": "data/raw/online_retail_II.csv",
+  "data_checksum_md5": "aee9cf42afef8159eceb47020900467c",
+  "run_role": "champion_evaluation",
+  "slice_evaluated": 4,
+  "drift_triggered": false,
+  "promotion_executed": false
+}

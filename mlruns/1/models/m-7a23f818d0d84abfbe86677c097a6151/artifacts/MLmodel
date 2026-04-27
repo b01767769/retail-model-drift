@@ -1,0 +1,23 @@
+artifact_path: /workspaces/retail-model-drift/mlruns/1/models/m-7a23f818d0d84abfbe86677c097a6151/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.1
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.11.1
+model_id: m-7a23f818d0d84abfbe86677c097a6151
+model_size_bytes: 5767902
+model_uuid: m-7a23f818d0d84abfbe86677c097a6151
+prompts: null
+run_id: 1520ebcbb90948d79e5accab116f5b62
+utc_time_created: '2026-04-23 04:55:34.030367'
