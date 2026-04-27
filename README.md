@@ -15,6 +15,10 @@ Retail predictive models frequently degrade over time due to shifts in customer 
 
 This project implements a **lightweight, auditable MLOps pipeline** designed to detect and manage concept drift in retail models. By combining interpretable Recency-Frequency-Monetary (RFM) features with distributional monitoring and a conservative automated retraining loop, this system ensures models remain accurate over time without unnecessary churn.
 
+### To RUN A DEMO CLICK ON THE LINK BELOW TO DEMO THE PROJECT IN COLLAB 
+
+https://colab.research.google.com/github/b01767769/retail-model-drift/blob/main/notebooks/orchestrator.ipynb
+
 ### 🎯 Key Features
 
   * **Chronological Evaluation:** Uses fixed time-slices to simulate real-world production and prevent temporal leakage.
